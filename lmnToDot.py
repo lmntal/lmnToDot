@@ -6,10 +6,11 @@ from state.state import State
 class StateGraph:
     """状態グラフを管理するクラスです
     """
-    def __init__(self, str):
-        self.states = self.parseState(str)
-        self.parseTransition(self.states, str)
-        self.states[self.parseSS(str)].ini = True
+    def __init__(self, input_str):
+        input_str = input_str.replace('"', "'")
+        self.states = self.parseState(input_str)
+        self.parseTransition(self.states, input_str)
+        self.states[self.parseSS(input_str)].ini = True
 
     def stateColoring(self):
         """状態に色付けするための情報を付加します。
@@ -71,17 +72,42 @@ class StateGraph:
             dictionary: ID をキーとし、値に State オブジェクトをもつ辞書
         """
         states = {}
-        state_group = re.findall("state\([0-9]+,\{.*?\}\)", str)
-        for state in state_group:
-            id = re.search("[0-9]+", state).group(0)
-            name = re.search("\{.*?\}", state).group(0)
+        input_str = str
+        # Find each "state(<id>," occurrence, then extract the brace-delimited body
+        for m in re.finditer(r"state\(([0-9]+),", input_str):
+            state_id = m.group(1)
+            # locate the first '{' after the match
+            start = input_str.find('{', m.end())
+            if start == -1:
+                continue
+            # walk forward to find the matching '}' taking nesting into account
+            pos = start
+            depth = 0
+            end = -1
+            while pos < len(input_str):
+                current_char = input_str[pos]
+                if current_char == '{':
+                    depth += 1
+                elif current_char == '}':
+                    depth -= 1
+                    if depth == 0:
+                        end = pos
+                        break
+                pos += 1
+            if end == -1:
+                # unmatched brace; skip this entry
+                continue
+            name = input_str[start:end+1]
             lastPos = 0
             # 状態に適宜改行を入れて読みやすくする
-            while name.find(" ", lastPos + 15) != -1:
-                lastPos = name.find(" ", lastPos + 15)
-                if name[lastPos + 1] != "}":
-                    name = name[:lastPos] + "\n" + name[lastPos+1:]
-            states[id] = State(name)
+            while True:
+                idx = name.find(' ', lastPos + 15)
+                if idx == -1:
+                    break
+                lastPos = idx
+                if lastPos + 1 < len(name) and name[lastPos + 1] != '}':
+                    name = name[:lastPos] + '\n' + name[lastPos+1:]
+            states[state_id] = State(name)
         return states
 
     @staticmethod
