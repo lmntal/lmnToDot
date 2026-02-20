@@ -4,6 +4,16 @@
 ## Requirements
 - python 3.x
 
+## Preparation
+状態空間の標準出力のために，以下の記述をメタインタプリタ (`state_space_construction.lmn` 等) に追加してください．
+
+```
+Ret = state_space(I, M, S, T) :-
+Ret = ss(I, M, set.to_list(S), set.to_list(T)).
+Ret = ss(I, M, [$x|S], T) :- int($x) |
+Ret = ss(I, state_space.state_map_find(M, $x, Res), S, T), state($x, Res).
+```
+
 ## Usage
 標準入力に SLIM の出力を渡すことができます。
 
