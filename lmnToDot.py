@@ -7,6 +7,7 @@ class StateGraph:
     """状態グラフを管理するクラスです
     """
     def __init__(self, str):
+        str = str.replace('"', "'")
         self.states = self.parseState(str)
         self.parseTransition(self.states, str)
         self.states[self.parseSS(str)].ini = True
@@ -71,16 +72,41 @@ class StateGraph:
             dictionary: ID をキーとし、値に State オブジェクトをもつ辞書
         """
         states = {}
-        state_group = re.findall("state\([0-9]+,\{.*?\}\)", str)
-        for state in state_group:
-            id = re.search("[0-9]+", state).group(0)
-            name = re.search("\{.*?\}", state).group(0)
+        s = str
+        # Find each "state(<id>," occurrence, then extract the brace-delimited body
+        for m in re.finditer(r"state\(([0-9]+),", s):
+            id = m.group(1)
+            # locate the first '{' after the match
+            start = s.find('{', m.end())
+            if start == -1:
+                continue
+            # walk forward to find the matching '}' taking nesting into account
+            i = start
+            depth = 0
+            end = -1
+            while i < len(s):
+                ch = s[i]
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+                i += 1
+            if end == -1:
+                # unmatched brace; skip this entry
+                continue
+            name = s[start:end+1]
             lastPos = 0
             # 状態に適宜改行を入れて読みやすくする
-            while name.find(" ", lastPos + 15) != -1:
-                lastPos = name.find(" ", lastPos + 15)
-                if name[lastPos + 1] != "}":
-                    name = name[:lastPos] + "\n" + name[lastPos+1:]
+            while True:
+                idx = name.find(' ', lastPos + 15)
+                if idx == -1:
+                    break
+                lastPos = idx
+                if lastPos + 1 < len(name) and name[lastPos + 1] != '}':
+                    name = name[:lastPos] + '\n' + name[lastPos+1:]
             states[id] = State(name)
         return states
 
